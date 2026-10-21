@@ -1,0 +1,16 @@
+/out/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.git/
+.gitignore
+.env
+.env.*
+*.log
+*.tmp
+.DS_Store
+*.md
