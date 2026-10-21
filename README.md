@@ -14,6 +14,16 @@ It does not call `session_start()`, install an application plugin, or require
 a deserialization gadget. The exploit leaks the Zend MM and `libphp` bases,
 forges a session reference and reaches `zif_system`.
 
+## Related CVEs
+
+- **CVE-2026-109618** — RCE caused by request state corruption when an OOM
+  bailout interrupts a partially initialized request.
+- **CVE-2026-109619** — RCE caused by request-owned worker global state
+  surviving after its backing memory has been freed.
+
+This lab exercises the pre-RINIT OOM and cross-request stale-state behavior
+against the affected PHP 8.4.26 build.
+
 ## Verified environment
 
 ```text
