@@ -35,41 +35,130 @@ uid=33(www-data) gid=33(www-data) groups=33(www-data)
 
 ## Requirements
 
-- Docker
-- Bash
+- Docker Engine or Docker Desktop
+- Bash and `curl` for `start-lab.sh`
 - Python 3.10+
-- `curl`
-- Apple Silicon hosts are supported through `--platform linux/amd64`
+- An x86_64 Linux container runtime
+
+The exploit is calibrated for `linux/amd64`. ARM hosts can run the supplied
+target through Docker emulation, but the target itself remains x86_64.
 
 ## Start the lab
 
+### macOS Intel
+
+Install Docker Desktop, open a terminal in this repository, then run:
+
 ```bash
+chmod +x start-lab.sh poc.py
 ./start-lab.sh
 ```
 
-The first run builds the pinned Apache 2.4.68 image. The default URL is:
+### macOS Apple Silicon
+
+Enable **Use Rosetta for x86/amd64 emulation** in Docker Desktop if your
+Docker version provides it. Otherwise use Docker's QEMU emulation. The
+scripts already pass `--platform linux/amd64`.
+
+```bash
+chmod +x start-lab.sh poc.py
+./start-lab.sh
+```
+
+### Linux x86_64
+
+```bash
+chmod +x start-lab.sh poc.py
+./start-lab.sh
+```
+
+### Linux ARM64
+
+Install the amd64 runtime once, then start the lab:
+
+```bash
+sudo docker run --privileged --rm tonistiigi/binfmt --install amd64
+chmod +x start-lab.sh poc.py
+./start-lab.sh
+```
+
+### Windows with WSL2
+
+Use a WSL2 distribution and enable Docker Desktop's WSL integration. From the
+repository directory inside WSL:
+
+```bash
+chmod +x start-lab.sh poc.py
+./start-lab.sh
+```
+
+### Windows with PowerShell
+
+Use Docker Desktop in Linux-container mode. The Bash script can be run from
+WSL or Git Bash, but PowerShell users can start the same target directly:
+
+```powershell
+docker build --platform linux/amd64 -t php2shell-official:8.4.26-apache2.4.68 .
+New-Item -ItemType Directory -Force out | Out-Null
+docker rm -f php2shell-official-target 2>$null
+
+docker run -d --name php2shell-official-target `
+  --platform linux/amd64 `
+  -p 127.0.0.1:8088:80 `
+  -v "${PWD}\out:/out" `
+  --entrypoint /bin/sh `
+  php2shell-official:8.4.26-apache2.4.68 `
+  -c "mkdir -p /out && chown -R www-data:www-data /out && exec /opt/httpd-2.4.68/bin/httpd -DFOREGROUND -f /etc/httpd-php2shell.conf"
+```
+
+The first run builds the pinned Apache 2.4.68 image. The default URL on every
+platform is:
 
 ```text
 http://127.0.0.1:8088/index.php
 ```
 
-Change the port if needed:
+Change the port on Unix-like systems:
 
 ```bash
 PORT=18088 ./start-lab.sh
 ```
 
-Stop it with:
+For PowerShell, change `8088` in both the `docker run` and PoC commands.
+
+Stop the Bash-managed target with:
 
 ```bash
 ./start-lab.sh stop
+```
+
+On PowerShell:
+
+```powershell
+docker rm -f php2shell-official-target
 ```
 
 ## Run the PoC
 
 The target URL is always a command-line argument:
 
+macOS, Linux, WSL, and Git Bash:
+
 ```bash
+./poc.py http://127.0.0.1:8088/index.php
+```
+
+PowerShell:
+
+```powershell
+py -3 .\poc.py http://127.0.0.1:8088/index.php
+```
+
+Restart the lab before every clean run. The terminal path intentionally
+crashes the worker after writing the proof:
+
+```bash
+./start-lab.sh
 ./poc.py http://127.0.0.1:8088/index.php
 ```
 

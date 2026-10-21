@@ -6,6 +6,11 @@ IMAGE="${IMAGE:-php2shell-official:8.4.26-apache2.4.68}"
 CONTAINER="${CONTAINER:-php2shell-official-target}"
 PORT="${PORT:-8088}"
 
+if ! command -v docker >/dev/null 2>&1; then
+    echo "docker is required" >&2
+    exit 1
+fi
+
 if [[ "${1:-start}" == "stop" ]]; then
     docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
     echo "[+] stopped $CONTAINER"
@@ -20,12 +25,17 @@ fi
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 mkdir -p "$HERE/out"
 
+HOST_OUT="$HERE/out"
+if command -v cygpath >/dev/null 2>&1; then
+    HOST_OUT="$(cygpath -w "$HOST_OUT")"
+fi
+
 echo "[*] starting http://127.0.0.1:${PORT}/index.php"
 docker run -d \
     --name "$CONTAINER" \
     --platform linux/amd64 \
     -p "127.0.0.1:${PORT}:80" \
-    -v "$HERE/out:/out" \
+    -v "${HOST_OUT}:/out" \
     --entrypoint /bin/sh \
     "$IMAGE" \
     -c 'mkdir -p /out && chown -R www-data:www-data /out && exec /opt/httpd-2.4.68/bin/httpd -DFOREGROUND -f /etc/httpd-php2shell.conf' \
